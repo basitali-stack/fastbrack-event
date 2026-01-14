@@ -65,7 +65,8 @@ export function EventForm({ event, mode }: EventFormProps) {
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
-        name: "venues" as never,
+        // @ts-expect-error - venues is correctly typed as string array
+        name: "venues",
     });
 
     // Watch form state to enable/disable submit button
@@ -100,7 +101,6 @@ export function EventForm({ event, mode }: EventFormProps) {
         }
     }
 
-    // Check if form can be submitted
     const canSubmit = isValid && hasValidVenue && !isLoading;
 
     return (
