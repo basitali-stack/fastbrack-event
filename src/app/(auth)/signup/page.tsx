@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,8 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function SignupPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
@@ -120,13 +122,26 @@ export default function SignupPage() {
                                     <FormItem>
                                         <FormLabel className="text-zinc-300">Password</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                {...field}
-                                                type="password"
-                                                placeholder="••••••••"
-                                                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                                                disabled={isLoading}
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    {...field}
+                                                    type={showPassword ? "text" : "password"}
+                                                    placeholder="••••••••"
+                                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 pr-10"
+                                                    disabled={isLoading}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                                                >
+                                                    {showPassword ? (
+                                                        <EyeOff className="h-4 w-4" />
+                                                    ) : (
+                                                        <Eye className="h-4 w-4" />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -141,13 +156,26 @@ export default function SignupPage() {
                                             Confirm Password
                                         </FormLabel>
                                         <FormControl>
-                                            <Input
-                                                {...field}
-                                                type="password"
-                                                placeholder="••••••••"
-                                                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                                                disabled={isLoading}
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    {...field}
+                                                    type={showConfirmPassword ? "text" : "password"}
+                                                    placeholder="••••••••"
+                                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 pr-10"
+                                                    disabled={isLoading}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                                                >
+                                                    {showConfirmPassword ? (
+                                                        <EyeOff className="h-4 w-4" />
+                                                    ) : (
+                                                        <Eye className="h-4 w-4" />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
