@@ -1,10 +1,11 @@
 "use client";
 
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,6 @@ import {
 } from "@/types/event.types";
 import { createEvent, updateEvent } from "@/actions/event.actions";
 import type { Event } from "@/types/database.types";
-import { useState } from "react";
 
 interface EventFormProps {
     event?: Event;
@@ -49,8 +49,12 @@ export function EventForm({ event, mode }: EventFormProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
 
-    const form = useForm<EventFormData>({
-        resolver: zodResolver(eventFormSchema),
+    // Manage venues separately with useState for better control
+    const initialVenues = event?.venues?.length ? event.venues : [""];
+    const [venues, setVenues] = useState<string[]>(initialVenues);
+
+    const form = useForm<Omit<EventFormData, "venues">>({
+        resolver: zodResolver(eventFormSchema.omit({ venues: true })),
         defaultValues: {
             name: event?.name || "",
             sport_type: event?.sport_type || "",
@@ -58,30 +62,50 @@ export function EventForm({ event, mode }: EventFormProps) {
                 ? new Date(event.date_time).toISOString().slice(0, 16)
                 : "",
             description: event?.description || "",
-            venues: event?.venues?.length ? event.venues : [""],
         },
         mode: "onChange",
     });
 
-    const { fields, append, remove } = useFieldArray({
-        control: form.control,
-        // @ts-expect-error - venues is correctly typed as string array
-        name: "venues",
-    });
-
-    // Watch form state to enable/disable submit button
     const { isValid } = form.formState;
-    const watchedVenues = form.watch("venues");
-    const hasValidVenue = watchedVenues?.some((v) => v && v.trim() !== "");
+    const hasValidVenue = venues.some((v) => v && v.trim() !== "");
 
-    async function onSubmit(data: EventFormData) {
+    const addVenue = () => {
+        setVenues([...venues, ""]);
+    };
+
+    const removeVenue = (index: number) => {
+        if (venues.length > 1) {
+            setVenues(venues.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateVenue = (index: number, value: string) => {
+        const newVenues = [...venues];
+        newVenues[index] = value;
+        setVenues(newVenues);
+    };
+
+    async function onSubmit(data: Omit<EventFormData, "venues">) {
+        // Filter out empty venues
+        const filteredVenues = venues.filter((v) => v.trim() !== "");
+
+        if (filteredVenues.length === 0) {
+            toast.error("Please add at least one venue");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
+            const eventData: EventFormData = {
+                ...data,
+                venues: filteredVenues,
+            };
+
             const result =
                 mode === "create"
-                    ? await createEvent(data)
-                    : await updateEvent({ ...data, id: event!.id });
+                    ? await createEvent(eventData)
+                    : await updateEvent({ ...eventData, id: event!.id });
 
             if (result.success) {
                 toast.success(
@@ -210,6 +234,7 @@ export function EventForm({ event, mode }: EventFormProps) {
                             )}
                         />
 
+                        {/* Venues Section - Managed with useState */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <FormLabel className="text-zinc-300">Venues</FormLabel>
@@ -217,7 +242,7 @@ export function EventForm({ event, mode }: EventFormProps) {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append("")}
+                                    onClick={addVenue}
                                     className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700"
                                     disabled={isLoading}
                                 >
@@ -225,39 +250,29 @@ export function EventForm({ event, mode }: EventFormProps) {
                                     Add Venue
                                 </Button>
                             </div>
-                            {fields.map((field, index) => (
-                                <FormField
-                                    key={field.id}
-                                    control={form.control}
-                                    name={`venues.${index}`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex gap-2">
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder={`Venue ${index + 1}`}
-                                                        className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                                                        disabled={isLoading}
-                                                    />
-                                                </FormControl>
-                                                {fields.length > 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => remove(index)}
-                                                        className="bg-zinc-800 border-zinc-700 text-white hover:bg-red-900/50 hover:border-red-700"
-                                                        disabled={isLoading}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                            <FormMessage />
-                                        </FormItem>
+
+                            {venues.map((venue, index) => (
+                                <div key={index} className="flex gap-2">
+                                    <Input
+                                        value={venue}
+                                        onChange={(e) => updateVenue(index, e.target.value)}
+                                        placeholder={`Venue ${index + 1}`}
+                                        className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                                        disabled={isLoading}
+                                    />
+                                    {venues.length > 1 && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => removeVenue(index)}
+                                            className="bg-zinc-800 border-zinc-700 text-white hover:bg-red-900/50 hover:border-red-700"
+                                            disabled={isLoading}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
                                     )}
-                                />
+                                </div>
                             ))}
                         </div>
 
