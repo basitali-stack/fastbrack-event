@@ -60,12 +60,18 @@ export function EventForm({ event, mode }: EventFormProps) {
             description: event?.description || "",
             venues: event?.venues?.length ? event.venues : [""],
         },
+        mode: "onChange",
     });
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "venues" as never,
     });
+
+    // Watch form state to enable/disable submit button
+    const { isValid } = form.formState;
+    const watchedVenues = form.watch("venues");
+    const hasValidVenue = watchedVenues?.some((v) => v && v.trim() !== "");
 
     async function onSubmit(data: EventFormData) {
         setIsLoading(true);
@@ -93,6 +99,9 @@ export function EventForm({ event, mode }: EventFormProps) {
             setIsLoading(false);
         }
     }
+
+    // Check if form can be submitted
+    const canSubmit = isValid && hasValidVenue && !isLoading;
 
     return (
         <Card className="w-full max-w-2xl mx-auto bg-zinc-900/50 border-zinc-800">
@@ -171,7 +180,7 @@ export function EventForm({ event, mode }: EventFormProps) {
                                         <Input
                                             {...field}
                                             type="datetime-local"
-                                            className="bg-zinc-800 border-zinc-700 text-white"
+                                            className="bg-zinc-800 border-zinc-700 text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-100"
                                             disabled={isLoading}
                                         />
                                     </FormControl>
@@ -264,8 +273,8 @@ export function EventForm({ event, mode }: EventFormProps) {
                             </Button>
                             <Button
                                 type="submit"
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                disabled={isLoading}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={!canSubmit}
                             >
                                 {isLoading ? (
                                     <>
